@@ -1,6 +1,6 @@
 /*
  * *****************************************************************************
- * Copyright (C) 2014-2023 Dennis Sheirer
+ * Copyright (C) 2014-2025 Dennis Sheirer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ import io.github.dsheirer.identifier.Form;
 import io.github.dsheirer.identifier.Identifier;
 import io.github.dsheirer.identifier.IdentifierClass;
 import io.github.dsheirer.identifier.Role;
+import io.github.dsheirer.identifier.alias.TalkerAliasIdentifier;
 import io.github.dsheirer.identifier.configuration.ConfigurationLongIdentifier;
 import io.github.dsheirer.identifier.patch.PatchGroup;
 import io.github.dsheirer.identifier.patch.PatchGroupIdentifier;
@@ -48,6 +49,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.LinkedTransferQueue;
@@ -412,22 +414,40 @@ public class RdioScannerBroadcaster extends AbstractAudioBroadcaster<RdioScanner
      * Creates a formatted string with the TO identifiers or uses a default of zero (0)
      * 
      */
-    private static String getTo(AudioRecording audioRecording)
+    private String getTo(AudioRecording audioRecording)
     {
         Identifier identifier = audioRecording.getIdentifierCollection().getToIdentifier();
 
-        if(identifier instanceof PatchGroupIdentifier patchGroupIdentifier)
+        if(identifier != null)
         {
-            return patchGroupIdentifier.getValue().getPatchGroup().getValue().toString();
-        }
-        else if(identifier instanceof TalkgroupIdentifier talkgroupIdentifier)
-        {
-            return String.valueOf(RadioReferenceDecoder.convertToRadioReferenceTalkgroup(talkgroupIdentifier.getValue(),
-                    talkgroupIdentifier.getProtocol()));
-        }
-        else if(identifier instanceof RadioIdentifier radioIdentifier)
-        {
-            return radioIdentifier.getValue().toString();
+            AliasList aliasList = mAliasModel.getAliasList(audioRecording.getIdentifierCollection());
+
+            if(aliasList != null)
+            {
+                List<Alias> aliases = aliasList.getAliases(identifier);
+
+                //Check for 'Stream As Talkgroup' alias and use this instead of the decoded TO value.
+                Optional<Alias> streamAs = aliases.stream().filter(alias -> alias.getStreamTalkgroupAlias() != null).findFirst();
+
+                if(streamAs.isPresent())
+                {
+                    return String.valueOf(streamAs.get().getStreamTalkgroupAlias().getValue());
+                }
+            }
+
+            if(identifier instanceof PatchGroupIdentifier patchGroupIdentifier)
+            {
+                return patchGroupIdentifier.getValue().getPatchGroup().getValue().toString();
+            }
+            else if(identifier instanceof TalkgroupIdentifier talkgroupIdentifier)
+            {
+                return String.valueOf(RadioReferenceDecoder.convertToRadioReferenceTalkgroup(talkgroupIdentifier.getValue(),
+                        talkgroupIdentifier.getProtocol()));
+            }
+            else if(identifier instanceof RadioIdentifier radioIdentifier)
+            {
+                return radioIdentifier.getValue().toString();
+            }
         }
 
         return "0";
