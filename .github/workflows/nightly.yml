@@ -2,6 +2,7 @@
 name: Nightly Release
 
 on:
+  workflow_dispatch:
   push:
     branches: [ master ]
 # Don't run nightly build for pull requests - uncomment to test changes to this action within scope of the PR review
