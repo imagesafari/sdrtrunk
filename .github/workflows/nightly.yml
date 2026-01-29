@@ -38,7 +38,7 @@ jobs:
           echo -e "ref: $GITHUB_REF \ncommit: $GITHUB_SHA\nbuild: $(date +"%Y-%m-%dT%H:%M:%SZ")" > build/image/build_info.txt
 
       - name: Add build artifacts to nightly release
-        uses: pyTooling/Actions/releaser@main
+        uses: pyTooling/Actions/releaser@r4
         with:
           tag: nightly
           rm: false
