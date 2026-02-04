@@ -61,7 +61,7 @@ version = project.findProperty('projectVersion')
 //Java 23 is required for this version of the Project Panama preview/incubator feature
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(23)
+        languageVersion = JavaLanguageVersion.of(24)
     }
 }
 
@@ -209,7 +209,7 @@ String jdk_windows_aarch64 = jdk_base + 'windows-arm64/jdk-22.0.2-full'
 /**
  * Download URLs to download the JDK as part of the gradle build packaging process
  */
-def jdk_download_base = "https://download.bell-sw.com/java/23.0.1+13/bellsoft-jdk23.0.1+13-"
+def jdk_download_base = "https://download.bell-sw.com/java/24.0.1+11/bellsoft-jdk24.0.1+11-"
 def jdk_download_suffix = "-full.tar.gz"
 def jdk_download_linux_aarch64 = jdk_download_base + "linux-aarch64" + jdk_download_suffix
 def jdk_download_linux_x86_64 = jdk_download_base + "linux-amd64" + jdk_download_suffix
