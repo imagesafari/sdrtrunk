@@ -289,7 +289,6 @@ public class ChannelSpectrumPanel extends JPanel implements Listener<ProcessingC
             mEstimatedCarrierOffsetFrequencyLabel.setEnabled(true);
         });
 
-        mFrequencyOverlayPanel.setEstimatedCarrierOffsetFrequency(carrierOffsetFrequency);
     }
 
     private void broadcast(SourceEvent sourceEvent)
@@ -311,7 +310,6 @@ public class ChannelSpectrumPanel extends JPanel implements Listener<ProcessingC
         mEstimatedCarrierOffsetFrequencyValueLabel.setEnabled(false);
         mFrequencyOverlayPanel.process(SourceEvent.frequencyChange(null, 0));
         mFrequencyOverlayPanel.process(SourceEvent.sampleRateChange(0));
-        mFrequencyOverlayPanel.setEstimatedCarrierOffsetFrequency(0);
         mFrequencyOverlayPanel.setChannelBandwidth(0);
     }
 
@@ -410,11 +408,6 @@ public class ChannelSpectrumPanel extends JPanel implements Listener<ProcessingC
         @Override
         public void receive(SourceEvent sourceEvent)
         {
-            if(sourceEvent.getEvent() == SourceEvent.Event.NOTIFICATION_CARRIER_OFFSET_FREQUENCY)
-            {
-                updateEstimatedCarrierOffsetFrequency(sourceEvent.getValue().longValue());
-            }
-
             mSignalPowerView.receive(sourceEvent);
         }
     }
