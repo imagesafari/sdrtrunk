@@ -17,63 +17,77 @@
  * ****************************************************************************
  */
 
-package io.github.dsheirer.module.decode.dcs;
+package io.github.dsheirer.module.decode.squelchDecoder.ctcss;
 
 import io.github.dsheirer.identifier.Identifier;
-import io.github.dsheirer.identifier.dcs.DCSIdentifier;
+import io.github.dsheirer.identifier.ctcss.CTCSSIdentifier;
 import io.github.dsheirer.message.Message;
 import io.github.dsheirer.protocol.Protocol;
+
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Digital Coded Squelch (DCS) tone detected message
+ * CTCSS tone debug message
  */
-public class DCSMessage extends Message
+public class CTCSSMessage extends Message
 {
-    private final DCSCode mDCSCode;
+    private final CTCSSCode mCTCSSCode = null;
+    private String mDebugMessage;
+    private boolean mInitialThreshold;
 
     /**
      * Constructs an instance
-     * @param code that was detected
      * @param timestamp when the code was detected
      */
-    public DCSMessage(DCSCode code, long timestamp)
+    public CTCSSMessage(long timestamp)
     {
         super(timestamp);
-        mDCSCode = code;
+    }
+    public CTCSSMessage()
+    {
+//        mCTCSSCode = null;
+        mDebugMessage = null;
+        mInitialThreshold = false;
     }
 
     @Override
     public String toString()
     {
-        return "Digital Coded Squelch (DCS) Detected: " + mDCSCode.toString();
-    }
-
-    /**
-     * The DCS code that was detected.
-     * @return code
-     */
-    public DCSCode getDCSCode()
-    {
-        return mDCSCode;
+        return mDebugMessage;
     }
 
     @Override
     public boolean isValid()
     {
-        return true; //We only send a message when the tone was valid
+        return mInitialThreshold;
     }
 
     @Override
     public Protocol getProtocol()
     {
-        return Protocol.DCS;
+        return Protocol.CTCSS;
     }
 
     @Override
     public List<Identifier> getIdentifiers()
     {
-        return Collections.singletonList(new DCSIdentifier(mDCSCode));
+        return Collections.singletonList(new CTCSSIdentifier(mCTCSSCode));
+    }
+
+    public void setInitialThreshold(boolean firstThreshold)
+    {
+        mInitialThreshold = firstThreshold;
+    }
+
+
+    public void setMessage(String s)
+    {
+        mDebugMessage = s;
+    }
+
+    public void setMessage(String message, String code, String format, String format1, String format2)
+    {
+
     }
 }

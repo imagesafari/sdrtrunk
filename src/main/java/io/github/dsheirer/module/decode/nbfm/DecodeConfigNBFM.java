@@ -1,6 +1,6 @@
 /*
  * *****************************************************************************
- * Copyright (C) 2014-2025 Dennis Sheirer
+ * Copyright (C) 2014-2026 Dennis Sheirer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,22 +19,77 @@
 package io.github.dsheirer.module.decode.nbfm;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import io.github.dsheirer.dsp.squelch.NoiseSquelch;
 import io.github.dsheirer.module.decode.DecoderType;
 import io.github.dsheirer.module.decode.analog.DecodeConfigAnalog;
+import io.github.dsheirer.module.decode.squelchDecoder.squelchDecoderConfig;
 import io.github.dsheirer.source.tuner.channel.ChannelSpecification;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Decoder configuration for an NBFM channel
+ * Decoder configuration for an NBFM channel.
+ *
+ * Supports channel-level CTCSS/DCS tone filtering and FM de-emphasis.
  */
 public class DecodeConfigNBFM extends DecodeConfigAnalog
 {
-    private boolean mAudioFilter = true;
+    private boolean mAudioHPFilter = true;
     private float mSquelchNoiseOpenThreshold = NoiseSquelch.DEFAULT_NOISE_OPEN_THRESHOLD;
     private float mSquelchNoiseCloseThreshold = NoiseSquelch.DEFAULT_NOISE_CLOSE_THRESHOLD;
     private int mSquelchHysteresisOpenThreshold = NoiseSquelch.DEFAULT_HYSTERESIS_OPEN_THRESHOLD;
     private int mSquelchHysteresisCloseThreshold = NoiseSquelch.DEFAULT_HYSTERESIS_CLOSE_THRESHOLD;
+
+    // Channel-level squelch filtering
+    private List<squelchDecoderConfig> mSquelchDecoders = new ArrayList<>();
+    private boolean mSquelchFilterEnabled = false;
+
+     // FM de-emphasis
+    private DeemphasisMode mDeemphasis = DeemphasisMode.NONE;
+
+    /**
+     * FM de-emphasis time constant options
+     *
+     * Commercial broadcast stations in North America and Europe use 75 us and 53 us respectively
+     * But this is NBFM and reliable documentation for de-emphasis is difficult to find. There was one
+     * reference on a repeater builder site that mentions 3dB @ 3 KHz, but it sounds pretty severe and weak
+     * signals come through pretty muffled sounding. The Linux GQRX app recommends 530us for NBFM, and it also sounds
+     * very muffled in the app. GQRX offers a range of 25us to 530us. There is no standard found for NBFM.
+     * So included are some known values and one to bridge the gap. A user should be able to find a personal
+     * preference from the values below.
+     */
+    // TODO get this out of here and into its own file
+    public enum DeemphasisMode
+    {
+        NONE("None", 0),
+        CEPT_53US("53 µs (Europe/CEPT)", 53),
+        US_75US("75 µs (North America)", 75),
+        OTHER_166US("166 µs (Other)", 166),
+        NBFM_333US("333 µs (3dB @ 3KHz)", 333);
+
+        private final String mLabel;
+        private final int mMicroseconds;
+
+        DeemphasisMode(String label, int microseconds)
+        {
+            mLabel = label;
+            mMicroseconds = microseconds;
+        }
+
+        public int getMicroseconds()
+        {
+            return mMicroseconds;
+        }
+
+        @Override
+        public String toString()
+        {
+            return mLabel;
+        }
+    }
 
     /**
      * Constructs an instance
@@ -79,19 +134,19 @@ public class DecodeConfigNBFM extends DecodeConfigAnalog
      * Indicates if the user wants the demodulated audio to be high-pass filtered.
      * @return enable status, defaults to true.
      */
-    @JacksonXmlProperty(isAttribute = true, localName = "audioFilter")
+    @JacksonXmlProperty(isAttribute = true, localName = "audioHPFilter")
     public boolean isAudioFilter()
     {
-        return mAudioFilter;
+        return mAudioHPFilter;
     }
 
     /**
      * Sets the enabled state of high-pass filtering of the demodulated audio.
-     * @param audioFilter to true to enable high-pass filtering.
+     * @param audioHPFilter to true to enable high-pass filtering.
      */
-    public void setAudioFilter(boolean audioFilter)
+    public void setAudioFilter(boolean audioHPFilter)
     {
-        mAudioFilter = audioFilter;
+        mAudioHPFilter = audioHPFilter;
     }
 
     /**
@@ -105,16 +160,6 @@ public class DecodeConfigNBFM extends DecodeConfigAnalog
     }
 
     /**
-     * Squelch noise close threshold in the range 0.0 to 1.0, greater than or equal to open threshold, with a default of 0.2
-     * @return noise close threshold
-     */
-    @JacksonXmlProperty(isAttribute = true, localName = "squelchNoiseCloseThreshold")
-    public float getSquelchNoiseCloseThreshold()
-    {
-        return mSquelchNoiseCloseThreshold;
-    }
-
-    /**
      * Sets the squelch noise threshold.
      * @param open in range 0.0 to 1.0 with a default of 0.1
      */
@@ -124,8 +169,17 @@ public class DecodeConfigNBFM extends DecodeConfigAnalog
         {
             throw new IllegalArgumentException("Squelch noise open threshold is out of range: " + open);
         }
-
         mSquelchNoiseOpenThreshold = open;
+    }
+
+    /**
+     * Squelch noise close threshold in the range 0.0 to 1.0, greater than or equal to open threshold, with a default of 0.2
+     * @return noise close threshold
+     */
+    @JacksonXmlProperty(isAttribute = true, localName = "squelchNoiseCloseThreshold")
+    public float getSquelchNoiseCloseThreshold()
+    {
+        return mSquelchNoiseCloseThreshold;
     }
 
     /**
@@ -138,7 +192,6 @@ public class DecodeConfigNBFM extends DecodeConfigAnalog
         {
             throw new IllegalArgumentException("Squelch noise close threshold is out of range: " + close);
         }
-
         mSquelchNoiseCloseThreshold = close;
     }
 
@@ -162,7 +215,6 @@ public class DecodeConfigNBFM extends DecodeConfigAnalog
         {
             throw new IllegalArgumentException("Squelch hysteresis open threshold is out of range: " + open);
         }
-
         mSquelchHysteresisOpenThreshold = open;
     }
 
@@ -186,7 +238,79 @@ public class DecodeConfigNBFM extends DecodeConfigAnalog
         {
             throw new IllegalArgumentException("Squelch hysteresis close threshold is out of range: " + close);
         }
-
         mSquelchHysteresisCloseThreshold = close;
+    }
+
+     /**
+     * List of CTCSS/DCS squelch decoders for this channel.
+     */
+    @JacksonXmlElementWrapper(localName = "squelchDecoders")
+    @JacksonXmlProperty(localName = "squelchDecoder")
+    public List<squelchDecoderConfig> getSquelchDecoders()
+    {
+        return mSquelchDecoders;
+    }
+
+    public void setSquelchDecoders(List<squelchDecoderConfig> squelchDecoders)
+    {
+        mSquelchDecoders = squelchDecoders != null ? squelchDecoders : new ArrayList<>();
+    }
+
+    /**
+     * Adds a squelch decoder to the channel configuration
+     */
+    public void addSquelchDecoder(squelchDecoderConfig decoder)
+    {
+        if(decoder != null)
+        {
+            mSquelchDecoders.add(decoder);
+
+        }
+    }
+
+    /**
+     * Removes a squelch filter from the channel configuration
+     */
+    public void removeSquelchDecoder(squelchDecoderConfig decoder)
+    {
+        mSquelchDecoders.remove(decoder);
+    }
+
+
+    /**
+     * Indicates if squelch filtering is enabled for this channel
+     */
+    //@JacksonXmlProperty(isAttribute = true, localName = "squelchFilterEnabled")
+    @JsonIgnore
+    public boolean isSquelchDecoderEnabled()
+    {
+        List<squelchDecoderConfig> decoders = getSquelchDecoders();
+        // TODO right now only looking at first and only decoder, need to fix when multiple decoders are possible
+        return !decoders.isEmpty() && decoders.getFirst().getSquelchType() != squelchDecoderConfig.SquelchType.NONE;
+    }
+
+    /**
+     * Indicates if this channel has valid, enabled tone filters configured
+     */
+    @JsonIgnore
+    public boolean hasSquelchFiltering()
+    {
+        return mSquelchFilterEnabled && !mSquelchDecoders.isEmpty();
+    }
+
+    /**
+     * FM de-emphasis mode. Standard FM broadcasting uses pre-emphasis to boost high
+     * frequencies during transmission. De-emphasis restores flat frequency response
+     * during receive, improving audio clarity.
+     */
+    @JacksonXmlProperty(isAttribute = true, localName = "deemphasis")
+    public DeemphasisMode getDeemphasis()
+    {
+        return mDeemphasis;
+    }
+
+    public void setDeemphasis(DeemphasisMode deemphasis)
+    {
+        mDeemphasis = deemphasis != null ? deemphasis : DeemphasisMode.NONE;
     }
 }
