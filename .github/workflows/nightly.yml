@@ -2,6 +2,7 @@
 name: Nightly Release
 
 on:
+  workflow_dispatch:
   push:
     branches: [ master ]
 # Don't run nightly build for pull requests - uncomment to test changes to this action within scope of the PR review
@@ -25,12 +26,12 @@ jobs:
       - name: Build Linux and Mac releases with Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: runtimeZipOthers -PprojectVersion=nightly
+          arguments: runtimeZipOthers -PprojectVersion=nightly-2026-07-13-pr2425-ctcss
 
       - name: Build Windows release with Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: runtimeZipWindows -PprojectVersion=nightly
+          arguments: runtimeZipWindows -PprojectVersion=nightly-2026-07-13-pr2425-ctcss
 
       - name: Create Build Info file
         run: |
@@ -39,7 +40,8 @@ jobs:
       - name: Add build artifacts to nightly release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly
+          tag_name: nightly-2026-07-13-pr2425-ctcss
+          name: Nightly 2026-07-13 + PR2425 CTCSS/DCS
           prerelease: true
           files: |
             build/image/*.zip
