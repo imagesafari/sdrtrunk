@@ -33,3 +33,7 @@ gradle-app.setting
 
 # Cache of project
 .gradletasknamecache
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
